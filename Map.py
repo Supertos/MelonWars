@@ -33,18 +33,19 @@ class Perlin:
                     closest_x = int( x // frequency * frequency )
                     closest_y = int( y // frequency * frequency )
 
-                    x1 = Perlin.sosi_hui_gvido(out, closest_x, closest_y, size)
-                    x2 = Perlin.sosi_hui_gvido(out, closest_x + frequency, closest_y, size)
-                    x3 = Perlin.sosi_hui_gvido(out, closest_x, closest_y + frequency, size)
-                    x4 = Perlin.sosi_hui_gvido(out, closest_x + frequency, closest_y + frequency, size)
+                    x1 = out[closest_x][closest_y] if closest_x < size and closest_y < size else 0
+                    x2 = out[closest_x + frequency][
+                        closest_y] if closest_x + frequency < size and closest_y < size else 0
+                    x3 = out[closest_x][
+                        closest_y + frequency] if closest_x < size and closest_y + frequency < size else 0
+                    x4 = out[closest_x + frequency][
+                        closest_y + frequency] if closest_x + frequency < size and closest_y + frequency < size else 0
 
-                    lerp = ( (x - closest_x )/frequency )
-                    interpolated_x1x2 = Perlin.interpolate(x1, x2, lerp )
-                    interpolated_x3x4 = Perlin.interpolate(x3, x4, lerp )
-                    lerp = ((y - closest_y) / frequency)
+                    lerp = ((x - closest_x) / frequency)
+                    lerped12 = x1 + lerp * (x2 - x1)
+                    lerped34 = x3 + lerp * (x4 - x3)
 
-                    interpolated_final = Perlin.interpolate(interpolated_x1x2, interpolated_x3x4, lerp )
-                    out[x][y] = interpolated_final
+                    out[x][y] = lerped12 + ((y - closest_y) / frequency) * (lerped34 - lerped12)
         return out
 
     @staticmethod
