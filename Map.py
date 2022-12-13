@@ -36,10 +36,10 @@ class Perlin:
                     x3 = Perlin.sosi_hui_gvido(out, closest_x, closest_y + frequency)
                     x4 = Perlin.sosi_hui_gvido(out, closest_x + frequency, closest_y + frequency)
 
-                    lerp = abs( (x//frequency*frequency+frequency - x )/frequency )
+                    lerp = ( (x - closest_x )/frequency )
                     interpolated_x1x2 = Perlin.interpolate(x1, x2, lerp )
                     interpolated_x3x4 = Perlin.interpolate(x3, x4, lerp )
-                    lerp = abs( (y//frequency*frequency+frequency - y )/frequency )
+                    lerp = ((y - closest_y) / frequency)
 
                     interpolated_final = Perlin.interpolate(interpolated_x1x2, interpolated_x3x4, lerp )
                     out[x][y] = interpolated_final
@@ -64,14 +64,14 @@ class Map:
         self.Seed = seed
         hgt_a = Perlin.generate2D( size, 32, 256, seed)
         print( "Generating mountains completed!")
-        #hgt_b = Perlin.generate2D( size, 128, 128, seed+1)
+        hgt_b = Perlin.generate2D( size, 128, 128, seed+1)
         print( "Generating hills completed!")
-        #hgt_c = Perlin.generate2D( size, 64, 64, seed+2)
+        hgt_c = Perlin.generate2D( size, 64, 64, seed+2)
         print( "Generating small hills completed!")
-        #hgt_e = Perlin.generate2D( size, 8, 2, seed+4)
+        hgt_e = Perlin.generate2D( size, 8, 2, seed+4)
         print( "Generating minor obstacles completed!")
 
-        self.Height = hgt_a #Perlin.addLists( hgt_a, Perlin.addLists( hgt_b,  Perlin.addLists( hgt_c, hgt_e, 256 ), 256), 256)
+        self.Height = Perlin.addLists( hgt_a, Perlin.addLists( hgt_b,  Perlin.addLists( hgt_c, hgt_e, 255 ), 255), 255)
 
     def getSize(self):
         return self.Size
