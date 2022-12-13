@@ -1,6 +1,8 @@
 import numpy as np
 import math
 
+import cProfile
+
 
 class Perlin:
     @staticmethod
@@ -8,9 +10,9 @@ class Perlin:
         return int( a + (b - a) * lerp )
 
     @staticmethod
-    def sosi_hui_gvido( lst, x, y ):
-        if len(lst) <= x: return 0
-        if len(lst[x]) <= y: return 0
+    def sosi_hui_gvido( lst, x, y, lst_size ):
+        if lst_size<= x: return 0
+        if lst_size <= y: return 0
         return lst[x][y]
 
     @staticmethod
@@ -31,10 +33,10 @@ class Perlin:
                     closest_x = int( x // frequency * frequency )
                     closest_y = int( y // frequency * frequency )
 
-                    x1 = Perlin.sosi_hui_gvido(out, closest_x, closest_y)
-                    x2 = Perlin.sosi_hui_gvido(out, closest_x + frequency, closest_y)
-                    x3 = Perlin.sosi_hui_gvido(out, closest_x, closest_y + frequency)
-                    x4 = Perlin.sosi_hui_gvido(out, closest_x + frequency, closest_y + frequency)
+                    x1 = Perlin.sosi_hui_gvido(out, closest_x, closest_y, size)
+                    x2 = Perlin.sosi_hui_gvido(out, closest_x + frequency, closest_y, size)
+                    x3 = Perlin.sosi_hui_gvido(out, closest_x, closest_y + frequency, size)
+                    x4 = Perlin.sosi_hui_gvido(out, closest_x + frequency, closest_y + frequency, size)
 
                     lerp = ( (x - closest_x )/frequency )
                     interpolated_x1x2 = Perlin.interpolate(x1, x2, lerp )
@@ -62,11 +64,11 @@ class Map:
 
         self.Size = size
         self.Seed = seed
-        hgt_a = Perlin.generate2D( size, 32, 256, seed)
+        hgt_a = Perlin.generate2D( size, 32, 128, seed)
         print( "Generating mountains completed!")
-        hgt_b = Perlin.generate2D( size, 128, 128, seed+1)
+        hgt_b = Perlin.generate2D( size, 128, 64, seed+1)
         print( "Generating hills completed!")
-        hgt_c = Perlin.generate2D( size, 64, 64, seed+2)
+        hgt_c = Perlin.generate2D( size, 64, 32, seed+2)
         print( "Generating small hills completed!")
         hgt_e = Perlin.generate2D( size, 8, 2, seed+4)
         print( "Generating minor obstacles completed!")
