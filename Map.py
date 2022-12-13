@@ -39,6 +39,7 @@ class Perlin:
                     lerp = abs( (x//frequency*frequency+frequency - x )/frequency )
                     interpolated_x1x2 = Perlin.interpolate(x1, x2, lerp )
                     interpolated_x3x4 = Perlin.interpolate(x3, x4, lerp )
+                    lerp = abs( (y//frequency*frequency+frequency - y )/frequency )
 
                     interpolated_final = Perlin.interpolate(interpolated_x1x2, interpolated_x3x4, lerp )
                     out[x][y] = interpolated_final
@@ -61,7 +62,7 @@ class Map:
 
         self.Size = size
         self.Seed = seed
-        hgt_a = Perlin.generate2D( size, 256, 256, seed)
+        hgt_a = Perlin.generate2D( size, 32, 256, seed)
         print( "Generating mountains completed!")
         #hgt_b = Perlin.generate2D( size, 128, 128, seed+1)
         print( "Generating hills completed!")

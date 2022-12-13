@@ -21,8 +21,9 @@ class Render:
         parr = pg.PixelArray(height_map)
         for x in range( map.Size ):
             for y in range( map.Size ):
-                print( (int(250*map.Height[x][y]/256),int(223*map.Height[x][y]/256),int(173*map.Height[x][y]/256)) )
-                parr[x,y] = (int(250*map.Height[x][y]/256),int(223*map.Height[x][y]/256),int(173*map.Height[x][y]/256))
+                #print( (int(250*map.Height[x][y]/256),int(223*map.Height[x][y]/256),int(173*map.Height[x][y]/256)) )
+                col = (map.Height[x][y],map.Height[x][y], map.Height[x][y])
+                parr[x,y] = col #(int(250*map.Height[x][y]/256),int(223*map.Height[x][y]/256),int(173*map.Height[x][y]/256))
         parr.close()
         WINDOW.blit( height_map, (0,0) )
         pg.display.flip()
