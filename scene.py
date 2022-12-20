@@ -1,4 +1,7 @@
 import math
+import random
+
+from game import Game
 from gui import *
 import pygame as pg
 
@@ -84,6 +87,18 @@ class SceneStart(SceneBase):
     ---------
     Scene for map creation
 ---------------------------------------------------------------------"""
+
+def OK_Action(self):
+    try:
+        print( self.scene.seed.Text )
+        Game.setMapSeed( int(self.scene.seed.Text) )
+    except ValueError:
+        Game.setMapSeed( random.randint(1000, 999999999999) )
+
+    print("Seed: ", Game.seed)
+    Game.generateMap( )
+
+
 class SceneMapSetup(SceneBase):
     def init(self):
         self.display.fill( (250, 223, 173) )
@@ -98,8 +113,37 @@ class SceneMapSetup(SceneBase):
         self.seed.setText("")
         self.addRenderElement(self.seed)
         self.seed.loadImage("materials/input512px.png")
+
+        self.proceed = TextButton()
+        self.proceed.setNextScene( SceneGame() )
+        self.proceed.setText( "OK" )
+        self.proceed.setPos(512-256, 768 - 512)
+        self.proceed.loadImage("materials/button256px_pressed.png", "materials/button256px.png")
+
+        self.proceed.setAction( OK_Action )
+        self.addRenderElement(self.proceed)
     #def tick(self, tick):
 
+"""---------------------------------------------------------------------
+    SceneGame
+    ---------
+    Base scene for game itself
+---------------------------------------------------------------------"""
+
+class SceneGame( SceneBase ):
+
+    def init(self):
+        self.display.fill( (250, 223, 173) )
+        self.map = MapCam()
+        self.map.setSize(1024, 768)
+        self.map.setPos(0,0)
+        self.addRenderElement(self.map)
+        self.RequireUpdate = True
+
+    def tick(self, tick):
+        self.display.fill( (250, 223, 173) )
+
+        self.RequireUpdate = True
 
 
 SetCurrentScene(SceneStart())

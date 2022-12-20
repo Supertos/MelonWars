@@ -1,5 +1,7 @@
 import pygame as pg
 
+import controls
+from game import Game
 
 global Display
 Display = None
@@ -32,11 +34,12 @@ class GUIBase:
         self.pressed = False
         self.scene = None
         self.focus_click = False    # Will game be focused on that GUI element on click? (If False there will be no focus at all)
-        self.hoverable = True # Do we want to take in account if player hovers this? (Useful for images or window frames that should not be functional by itself)
+        self.hoverable = False # Do we want to take in account if player hovers this? (Useful for images or window frames that should not be functional by itself)
     def setPos(self, x, y):
         self.x = x
         self.y = y
 
+    def tick(self): pass
     def setX(self, x): self.x = x
     def setY(self, y): self.y = y
 
@@ -89,6 +92,7 @@ class Button(GUIBase):
         self.pressed_image = None
         self.depressed_image = None
         self.NextScene = None
+        self.hoverable = True
 
     def setSize(self, w, h):
         if w == self.width and h == self.height: return
@@ -139,10 +143,12 @@ class Button(GUIBase):
         self.scene.RequireUpdate = True
     def on_depress(self):
         self.scene.RequireUpdate = True
-        if self.NextScene is None:
-            self.action()
-        else:
+        self.action()
+        if self.NextScene is not None:
             SetCurrentScene( self.NextScene )
+    def setAction(self, action):
+        funcType = type(self.action)
+        self.action = funcType(action, self)
 
     def action(self):
         pass
@@ -220,12 +226,13 @@ class TextInput(GUIBase):
         self.TextSurf = None
         self.Font = pg.font.Font('materials/text_main_b.ttf', 12)
         self.focus_click = True
+        self.hoverable = True
 
     def on_defocus(self):
-        print("Defocused!")
+        pass
 
     def on_focus(self):
-        print("Focused!")
+        pass
 
     def setText(self, text):
         self.Text = text
@@ -249,6 +256,117 @@ class TextInput(GUIBase):
         self.TextSurf = self.Font.render(self.Text, False, (0, 0, 0))
 
         self.scene.RequireUpdate = True
+
+
+"""---------------------------------------------------------------------
+    MapCam
+    ---------
+    This special GUI object renders map to the screen
+---------------------------------------------------------------------"""
+class MapCam(GUIBase):
+    def __init__(self):
+        super().__init__()
+        self.CamX = 0
+        self.CamY = 0
+        self.CellSize = 32 #How much of a screen space occupies every cell
+        self.focus_click = True
+        self.hoverable = True
+
+        self.Heights = [ None for i in range(256) ]
+        self.updateTileMap()
+
+
+    def updateTileMap(self):
+        for i in range(256):
+            surf = pg.surface.Surface( (self.CellSize, self.CellSize) )
+            surf.fill( self.calculateColor(i) )
+            self.Heights[ i ] = surf
+
+
+    def calculateColor(self, height):
+        if height > 128:
+            return (int(250 * height / 256), int(223 * height / 256), int(173 * height / 256))
+        else:
+            mod = max(0.5, int(height / 64))
+            return (25 * mod, 50 * mod, 127 * mod)
+    def setSize(self, w, h):
+        if w == self.width and h == self.height: return
+        self.width = w
+        self.height = h
+
+    def tick(self):
+        if controls.isKeyPressed( 1073741906 ) :
+            self.CamY = max( 0, min( Game.mapSize-self.height//self.CellSize, self.CamY - 1 ) )
+        if controls.isKeyPressed( 1073741904 ) :
+            self.CamX = max( 0, min( Game.mapSize-self.width//self.CellSize, self.CamX - 1 ) )
+        if controls.isKeyPressed( 1073741905 ) :
+            self.CamY = max( 0, min( Game.mapSize-self.height//self.CellSize, self.CamY + 1 ) )
+        if controls.isKeyPressed( 1073741903 ):
+            self.CamX = max( 0, min( Game.mapSize-self.width//self.CellSize, self.CamX + 1 ) )
+    def on_focus(self):
+        pass
+    def render(self, display):
+
+        #Render height map first
+
+
+        surf = pg.surface.Surface( (self.width, self.height), flags=pg.SRCALPHA )
+        blitsurf = pg.surface.Surface( (self.CellSize, self.CellSize), flags=pg.SRCALPHA )
+        for x in range( self.CamX, min( Game.mapSize, self.CamX + int(self.width/self.CellSize) )):
+            for y in range( self.CamY, min( Game.mapSize, self.CamY + int(self.height/self.CellSize) )):
+                real_x = (x-self.CamX)*self.CellSize
+                real_y = (y-self.CamY)*self.CellSize
+                if 0 <= x <= Game.mapSize and 0 <= y <= Game.mapSize:
+                    height = Game.HeightMap[x][y]
+                else:
+                    height = 0
+
+
+                surf.blit( self.Heights[ height ], (real_x, real_y) )
+
+
+        #Render selection rectangle
+        sel_surf = pg.surface.Surface( (self.CellSize, self.CellSize ), flags=pg.SRCALPHA)
+        sel_surf2 = pg.surface.Surface( (self.CellSize-2, self.CellSize-2 ), flags=pg.SRCALPHA)
+        sel_surf.fill( (0,0,0,100) )
+
+        x,y = controls.getMousePos()
+
+        real_x = x // self.CellSize * self.CellSize
+        real_y = y // self.CellSize * self.CellSize
+
+        surf.blit( sel_surf, (real_x,real_y))
+
+
+        #Render entities
+        toDraw = self.cullEnts()
+
+        for ent in toDraw:
+            real_x = ( ent.x - self.CamX )*self.CellSize
+            real_y = ( ent.y - self.CamY )*self.CellSize
+            surf.blit( ent.texture, (real_x, real_y) )
+
+        display.blit(surf, (self.x, self.y))
+
+    def cullEnts( self ):
+        out = []
+        CullSizeX = self.CamX + int(self.width/self.CellSize)
+        CullSizeY = self.CamY + int(self.height/self.CellSize)
+        for ent in Game.ents:
+            if self.CamX < ent.x < CullSizeX and self.CamY < ent.y < CullSizeY:
+                out.append( ent )
+
+        return out
+
+    def on_key(self, key, mod, char, scancode):
+
+        if key == 1073741911:
+            self.CellSize *= 2
+        elif key == 1073741910:
+            self.CellSize = int( max(1, self.CellSize * 0.5))
+        self.updateTileMap()
+
+
 
 
 from scene import *

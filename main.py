@@ -2,6 +2,7 @@ from gui import *
 
 from scene import *
 import pygame as pg
+from controls import *
 
 
 #pg.display.toggle_fullscreen()
@@ -20,27 +21,27 @@ while True:
         elif event.type == pg.MOUSEMOTION:
             if Cur_Scene.LastGUIElementID > -1:
                 mouse_x, mouse_y = event.pos
-
+                int_SetMousePos( mouse_x, mouse_y )
                 old_id = Cur_Scene.GUI_ElementHover
                 Cur_Scene.GUI_ElementHover = -1
 
-                for id in range(1, len(Cur_Scene.GUI_Elements)):
+                for id in range(len(Cur_Scene.GUI_Elements)):
                     el = Cur_Scene.GUI_Elements[id]
                     if el.x < mouse_x < el.x + el.width and el.y < mouse_y < el.y + el.height and el.hoverable:
                         el.hovered = True
                         Cur_Scene.GUI_ElementHover = id
                         break
-
                 if old_id != Cur_Scene.GUI_ElementHover:
                     if Cur_Scene.GUI_Elements[old_id].pressed:
                         Cur_Scene.GUI_Elements[old_id].pressed = False
                         Cur_Scene.GUI_Elements[Cur_Scene.GUI_ElementHover].on_depress()
                     Cur_Scene.GUI_Elements[old_id].hovered = False
-
         elif event.type == pg.MOUSEBUTTONDOWN:
             if Cur_Scene.GUI_ElementHover > -1:
                 Cur_Scene.GUI_Elements[Cur_Scene.GUI_ElementHover].pressed = True
                 Cur_Scene.GUI_Elements[Cur_Scene.GUI_ElementHover].on_press()
+
+
         elif event.type == pg.MOUSEBUTTONUP:
             if Cur_Scene.GUI_ElementHover != Cur_Scene.GUI_ElementFocus and Cur_Scene.GUI_ElementFocus > -1:
                 Cur_Scene.GUI_ElementFocus = Cur_Scene.GUI_ElementHover
@@ -55,10 +56,19 @@ while True:
                     Cur_Scene.GUI_ElementFocus = Cur_Scene.GUI_ElementHover
                     el.focused = True
                     el.on_focus()
+        elif event.type == pg.KEYDOWN:
+            int_setKey(event.key, True)
         elif event.type == pg.KEYUP:
             if Cur_Scene.GUI_ElementFocus > -1:
                 Cur_Scene.GUI_Elements[Cur_Scene.GUI_ElementFocus].on_key( event.key, event.mod, event.unicode, event.scancode )
+            int_setKey(event.key, False)
+    #Tick on all element
+    for item in Cur_Scene.GUI_Elements:
+        item.tick()
 
+    #Do game tick
+    if Game.game_started:
+        Game.gameTick()
     # Render all stuff
     if Cur_Scene.RequireUpdate:
         Cur_Scene.render()
