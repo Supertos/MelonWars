@@ -3,6 +3,18 @@ m_x = 0
 m_y = 0
 
 key_map = {}
+
+cell_sel = (0,0)
+
+def selectCell( x, y):
+    global cell_sel
+    cell_sel = (x,y)
+
+
+def getPointedCell():
+    global cell_sel
+    return cell_sel
+
 def int_SetMousePos( x, y ):
     global m_x
     global m_y

@@ -141,7 +141,7 @@ class SceneGame( SceneBase ):
         self.RequireUpdate = True
 
     def tick(self, tick):
-        self.display.fill( (250, 223, 173) )
+        self.display.fill( (127, 199, 255) )
 
         self.RequireUpdate = True
 

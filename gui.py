@@ -1,6 +1,7 @@
 import pygame as pg
 
 import controls
+from Render import Render
 from game import Game
 
 global Display
@@ -268,13 +269,13 @@ class MapCam(GUIBase):
         super().__init__()
         self.CamX = 0
         self.CamY = 0
-        self.CellSize = 32 #How much of a screen space occupies every cell
+        self.CellSize = 2 #How much of a screen space occupies every cell
         self.focus_click = True
         self.hoverable = True
 
         self.Heights = [ None for i in range(256) ]
         self.updateTileMap()
-
+        self.Chunks = {}
 
     def updateTileMap(self):
         for i in range(256):
@@ -289,6 +290,7 @@ class MapCam(GUIBase):
         else:
             mod = max(0.5, int(height / 64))
             return (25 * mod, 50 * mod, 127 * mod)
+
     def setSize(self, w, h):
         if w == self.width and h == self.height: return
         self.width = w
@@ -296,55 +298,84 @@ class MapCam(GUIBase):
 
     def tick(self):
         if controls.isKeyPressed( 1073741906 ) :
-            self.CamY = max( 0, min( Game.mapSize-self.height//self.CellSize, self.CamY - 1 ) )
+            self.CamY = max( 0, min( Game.mapSize-self.height//self.CellSize, self.CamY - 2/self.CellSize ) )
         if controls.isKeyPressed( 1073741904 ) :
-            self.CamX = max( 0, min( Game.mapSize-self.width//self.CellSize, self.CamX - 1 ) )
+            self.CamX = max( 0, min( Game.mapSize-self.width//self.CellSize, self.CamX - 2/self.CellSize ) )
         if controls.isKeyPressed( 1073741905 ) :
-            self.CamY = max( 0, min( Game.mapSize-self.height//self.CellSize, self.CamY + 1 ) )
+            self.CamY = max( 0, min( Game.mapSize-self.height//self.CellSize, self.CamY + 2/self.CellSize ) )
         if controls.isKeyPressed( 1073741903 ):
-            self.CamX = max( 0, min( Game.mapSize-self.width//self.CellSize, self.CamX + 1 ) )
+            self.CamX = max( 0, min( Game.mapSize-self.width//self.CellSize, self.CamX + 2/self.CellSize ) )
+
     def on_focus(self):
         pass
+
+    def chunkLoad(self, x, y):
+        return Render.renderChunk( (x,y), self.CellSize )
+
     def render(self, display):
 
         #Render height map first
+        surf = pg.surface.Surface((self.width, self.height), flags=pg.SRCALPHA)
+
+        startChunk = (self.CamX/32, self.CamY/32)
+        endChunk = (self.CamX//32 + int( (self.width/self.CellSize)//32+1 ), self.CamY//32 + int((self.height/self.CellSize)//32+1)  )
 
 
-        surf = pg.surface.Surface( (self.width, self.height), flags=pg.SRCALPHA )
-        blitsurf = pg.surface.Surface( (self.CellSize, self.CellSize), flags=pg.SRCALPHA )
-        for x in range( self.CamX, min( Game.mapSize, self.CamX + int(self.width/self.CellSize) )):
-            for y in range( self.CamY, min( Game.mapSize, self.CamY + int(self.height/self.CellSize) )):
-                real_x = (x-self.CamX)*self.CellSize
-                real_y = (y-self.CamY)*self.CellSize
-                if 0 <= x <= Game.mapSize and 0 <= y <= Game.mapSize:
-                    height = Game.HeightMap[x][y]
-                else:
-                    height = 0
+        s_x, s_y = startChunk
+        e_x, e_y = endChunk
 
+        chunk_float_x = int( s_x%1*self.CellSize )
+        chunk_float_y = int( s_y%1*self.CellSize )
 
-                surf.blit( self.Heights[ height ], (real_x, real_y) )
+        float_x = int( self.CamX%1*self.CellSize )
+        float_y = int( self.CamY%1*self.CellSize )
 
+        for x in range( int(s_x), int(e_x)+1 ):
+            for y in range( int(s_y), int(e_y)+1 ):
+                chunk = ( x, y )
+                if chunk not in self.Chunks:
+                    self.Chunks[chunk] = self.chunkLoad( x, y )
+                chunk_surf = self.Chunks[ chunk ]
+
+                real_x = (x*32-self.CamX)*self.CellSize
+                real_y = (y*32-self.CamY)*self.CellSize
+                surf.blit( chunk_surf, ( chunk_float_x + real_x, chunk_float_y + real_y))
 
         #Render selection rectangle
-        sel_surf = pg.surface.Surface( (self.CellSize, self.CellSize ), flags=pg.SRCALPHA)
-        sel_surf2 = pg.surface.Surface( (self.CellSize-2, self.CellSize-2 ), flags=pg.SRCALPHA)
+        sel_surf = pg.surface.Surface((self.CellSize, self.CellSize), flags=pg.SRCALPHA)
         sel_surf.fill( (0,0,0,100) )
 
-        x,y = controls.getMousePos()
+        #Compute cell we pointed at:
+        x, y = controls.getMousePos()
 
-        real_x = x // self.CellSize * self.CellSize
-        real_y = y // self.CellSize * self.CellSize
+        world_x = int(self.CamX) + ( x + float_x ) // self.CellSize
+        world_y = int(self.CamY) + ( y + float_y ) // self.CellSize
 
-        surf.blit( sel_surf, (real_x,real_y))
+        #Compute that's cell screen position
+        scr_x = ( world_x - int( self.CamX ) ) * self.CellSize - float_x
+        scr_y = ( world_y - int( self.CamY ) ) * self.CellSize - float_y
+
+
+
+        controls.selectCell( world_x, world_y )
+
+        #surf.blit( sel_surf, (scr_x,scr_y))
 
 
         #Render entities
-        toDraw = self.cullEnts()
+        toDraw = Game.ents#self.cullEnts()
 
         for ent in toDraw:
-            real_x = ( ent.x - self.CamX )*self.CellSize
-            real_y = ( ent.y - self.CamY )*self.CellSize
-            surf.blit( ent.texture, (real_x, real_y) )
+            w, h = ent.texture.get_size()
+
+            real_w = w*self.CellSize/64
+            real_h = h*self.CellSize/64
+            surf_to_blit = pg.transform.scale(ent.texture, (real_w, real_h))
+
+
+            real_x = ( ent.x - self.CamX )*self.CellSize + int(real_w/2)
+            real_y = ( ent.y - self.CamY )*self.CellSize - int(real_h/2)
+            surf.blit( surf_to_blit, (real_x, real_y) )
 
         display.blit(surf, (self.x, self.y))
 
@@ -362,8 +393,10 @@ class MapCam(GUIBase):
 
         if key == 1073741911:
             self.CellSize *= 2
+            self.Chunks = {}
         elif key == 1073741910:
             self.CellSize = int( max(1, self.CellSize * 0.5))
+            self.Chunks = {}
         self.updateTileMap()
 
 

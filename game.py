@@ -1,7 +1,7 @@
 
 import numpy as np
 import pygame as pg
-
+from entity import *
 """---------------------------------------------------------------------
     Perlin class
     ---------
@@ -72,6 +72,8 @@ class Game:
     HeightMap = []
     mapSize = 1024
     ents = []
+    cursor_x = 0
+    cursor_y = 0
     game_started = False
     def __init__(self):
         pass
@@ -84,9 +86,19 @@ class Game:
     def gameTick():
         for ent in Game.ents:
             ent.tick()
+
+    @staticmethod
+    def setMapCursorPos(x, y):
+        Game.cursor_y = y
+        Game.cursor_x = x
+
+    @staticmethod
+    def getCursorPos(x, y):
+        return Game.cursor_y, Game.cursor_x
+
     @staticmethod
     def generateMap():
-        Game.mapSize = 1024
+        Game.mapSize = 256
         print("Generating map!")
         OctaveA = Perlin.generate2D(Game.mapSize, 64, 200, Game.seed )
         print("Octave 128/128 generated!")
@@ -99,42 +111,18 @@ class Game:
 
         Game.HeightMap = Perlin.addLists(OctaveA, Perlin.addLists(OctaveB, Perlin.addLists(OctaveC, OctaveD, 255), 255), 255)
 
-        Ent = BaseEntity()
-        Ent.setTexture("materials/melon_soldier.png")
+        Ent = UnitBase()
+        Ent.setTexturePull([
+            pg.image.load("materials/melon_soldier.png"),
+            pg.image.load("materials/melon_soldier_up.png"),
+            pg.image.load("materials/melon_soldier_down.png"),
+            pg.image.load("materials/melon_soldier_right.png")
+        ])
         Ent.setPos(24, 24)
-        Ent.setVel(0.01, 0)
+        #Ent.setVel(0.01, 0)
         print("Saving height map!")
 
         Game.game_started = True
-
-
-"""---------------------------------------------------------------------
-    Entity class
-    ---------
-    This class contains all base entity functionality
----------------------------------------------------------------------"""
-class BaseEntity:
-    def __init__(self):
-        self.x = 0
-        self.y = 0
-        self.velx = 0
-        self.vely = 0
-        Game.ents.append( self )
-        self.id = len(Game.ents)-1
-
-    def setPos(self, x, y):
-        self.x = x
-        self.y = y
-
-    def setVel(self, x, y):
-        self.velx = x
-        self.vely = y
-
-    def setTexture(self, tex):
-        self.texture = pg.image.load( tex )
-
-    def tick(self):
-        self.setPos( self.x + self.velx, self.y+self.vely)
 
 
 
