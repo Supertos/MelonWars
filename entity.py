@@ -18,8 +18,16 @@ class BaseEntity:
         self.id = len(game.Game.ents)-1
 
     def setPos(self, x, y):
+        for id in range(len(game.Game.OccupationMap[int(self.x)][int(self.y)])):
+            ent = game.Game.OccupationMap[int(self.x)][int(self.y)][id]
+            if ent == self:
+                del game.Game.OccupationMap[int(self.x)][int(self.y)][id]
+                break
+
         self.x = x
         self.y = y
+
+        game.Game.OccupationMap[int(self.x)][int(self.y)].append( self )
 
     def setVel(self, x, y):
         self.velx = x
@@ -63,7 +71,8 @@ class UnitBase(BaseEntity):
         self.direction = 0
         self.textures = []
         self.texture = None
-
+        self.eyeHeight = 4
+        self.Height = 1
     def setDirection(self, dir):
         if dir > 3:
             self.direction = 0
@@ -74,8 +83,73 @@ class UnitBase(BaseEntity):
 
     def setTexturePull(self, texts):
         self.textures = texts
+
+    def doTrace(self, x, y):
+        if x > game.Game.mapSize or y > game.Game.mapSize or x < 0 or y <= 0:
+            out = {}
+            out["HitPos"] = (0,0,0)
+            out["TravelDist"] = 0
+            out["TileHeight"] = 0
+            out["Hit"] = True
+
+            return out
+        trg_z = game.Game.HeightMap[x][y] + self.eyeHeight
+        z = game.Game.HeightMap[int(self.x)][int(self.y)]  + self.eyeHeight
+
+        rel_x = (x - self.x)
+        rel_y = (y - self.y)
+        rel_z = (trg_z - z)
+
+        init_dist = math.sqrt(rel_x ** 2 + rel_y ** 2 + rel_z ** 2)
+        dist = math.sqrt(rel_x ** 2 + rel_y ** 2 + rel_z ** 2)
+
+        rel_x = rel_x / dist
+        rel_y = rel_y / dist
+        rel_z = rel_z / dist
+
+        dist_step = math.sqrt(rel_x ** 2 + rel_y ** 2 + rel_z ** 2)
+        cur_y = self.y
+        cur_x = self.x
+        cur_z = z
+        while dist > 0:
+
+            cur_x += rel_x
+            cur_y += rel_y
+            cur_z += rel_z
+            if cur_x > game.Game.mapSize or cur_y > game.Game.mapSize or cur_x < 0 or cur_y <= 0: break
+            if cur_z <= game.Game.HeightMap[int(cur_x)][int(cur_y)]:
+                #Generate out table
+                out = {}
+                out[ "HitPos" ] = ( cur_x, cur_y, cur_z )
+                out[ "TravelDist" ] = init_dist - dist
+                out[ "TileHeight" ] = game.Game.HeightMap[int(cur_x)][int(cur_y)]
+                out[ "Hit" ] = True
+                return out
+            else:
+                for ent in game.Game.OccupationMap[int(cur_x)][int(cur_y)] :
+                    if ent != self and cur_z <= game.Game.HeightMap[int(cur_x)][int(cur_y)] + ent.Height:
+                        out = {}
+                        out["HitPos"] = (cur_x, cur_y, cur_z)
+                        out["TravelDist"] = init_dist - dist
+                        out["Hit"] = True
+                        out["Entity"] = ent
+                        return out
+
+
+            dist = max( 0, dist - dist_step )
+
+        # Generate out table
+        out = {}
+        out["HitPos"] = (cur_x, cur_y, cur_z)
+        out["TravelDist"] = init_dist
+        out["Hit"] = False
+
+        return out
+
+
+
+
     def tick(self):
-        #super().tick()
         self.setDirection( self.direction + 1 )
         x, y = controls.getPointedCell()
 
@@ -95,9 +169,15 @@ class UnitBase(BaseEntity):
 
         rel_x *= 0.05
         rel_y *= 0.05
-        self.setVel( rel_x, rel_y )
 
-        self.setPos( self.x + rel_x, self.y+rel_y)
+        TraceCheck = self.doTrace( x, y )
+
+        print( TraceCheck )
+        if not TraceCheck["Hit"]:
+            self.setPos(self.x + rel_x, self.y + rel_y)
+
+
+
     def getYaw(self):
         return math.acos( self.velx/self.vely )
 

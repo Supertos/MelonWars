@@ -21,7 +21,7 @@ class Perlin:
     @staticmethod
     def generate2D( size, frequency, amplitude, seed ):
         rng = np.random.default_rng( seed )
-        randoms = rng.random( (int(size / frequency), int(size / frequency)) )
+        randoms = rng.random( (int(size / frequency)+1, int(size / frequency)+1) )
 
         out = [ [ None for _ in range(size) ] for _ in range(size) ]
         # Do random nodes to interpolate between
@@ -48,7 +48,7 @@ class Perlin:
                     lerped12 = x1 + lerp * (x2 - x1)
                     lerped34 = x3 + lerp * (x4 - x3)
 
-                    out[x][y] = int( lerped12 + ((y - closest_y) / frequency) * (lerped34 - lerped12) )
+                    out[x][y] = int( lerped12 + ((y - closest_y) / frequency) * (lerped34 - lerped12) )//2*2
         return out
 
     @staticmethod
@@ -72,6 +72,7 @@ class Game:
     HeightMap = []
     mapSize = 1024
     ents = []
+    OccupationMap = []
     cursor_x = 0
     cursor_y = 0
     game_started = False
@@ -98,18 +99,21 @@ class Game:
 
     @staticmethod
     def generateMap():
-        Game.mapSize = 256
+        Game.mapSize = 2048
         print("Generating map!")
-        OctaveA = Perlin.generate2D(Game.mapSize, 64, 200, Game.seed )
+        OctaveA = Perlin.generate2D(Game.mapSize, 200, int(200**0.99) ,Game.seed )
         print("Octave 128/128 generated!")
-        OctaveB = Perlin.generate2D(Game.mapSize, 32, 100, Game.seed )
+        OctaveB = Perlin.generate2D(Game.mapSize, 100, int(100**0.99), Game.seed )
         print("Octave 64/64 generated!")
-        OctaveC = Perlin.generate2D(Game.mapSize, 16, 50, Game.seed )
+        OctaveC = Perlin.generate2D(Game.mapSize, 50, int(50**0.99), Game.seed )
         print("Octave 32/16 generated!")
-        OctaveD = Perlin.generate2D(Game.mapSize, 8, 25, Game.seed )
+        OctaveD = Perlin.generate2D(Game.mapSize, 25, int(25**0.99), Game.seed )
         print("Octave 16/4 generated!")
 
         Game.HeightMap = Perlin.addLists(OctaveA, Perlin.addLists(OctaveB, Perlin.addLists(OctaveC, OctaveD, 255), 255), 255)
+
+
+        Game.OccupationMap = [ [ [] for _ in range(Game.mapSize) ] for _ in range(Game.mapSize) ]
 
         Ent = UnitBase()
         Ent.setTexturePull([
@@ -121,7 +125,6 @@ class Game:
         Ent.setPos(24, 24)
         #Ent.setVel(0.01, 0)
         print("Saving height map!")
-
         Game.game_started = True
 
 

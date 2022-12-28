@@ -41,10 +41,8 @@ class Render:
                     height = heights[x][y]
                 if height < 128:
                     tile.fill( Render.getTileColor(height, "water") )
-                elif height >= 128 and height < 136 or height > 200 and height < 240:
-                    tile.fill( Render.getTileColor(height, "field") )
                 else:
-                    tile.fill( Render.getTileColor(height, "forest") )
+                    tile.fill(Render.getTileColor(height, "forest"))
 
                 draw_x = x % 32
                 if draw_x == 32: draw_x = 0
@@ -54,3 +52,4 @@ class Render:
                 chunk.blit( tile, (draw_x*scale, draw_y*scale) )
         return chunk
 
+    #def renderEffect(self, surface, pos):
